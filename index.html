@@ -113,14 +113,21 @@ select option{background:var(--surface2);}
   <div class="lp">
 
     <div class="panel">
-      <div class="ph">🔑 Gemini API Key</div>
+      <div class="ph">🔑 API Key / Token</div>
       <div class="pb">
         <div class="ig">
           <div class="irow">
-            <input type="password" id="apiKey" placeholder="AIzaSy... hoặc AQ.Ab8R..." />
+            <input type="password" id="apiKey" placeholder="sk-... hoặc ya29... hoặc AIza..." />
             <button class="btn btn-s" onclick="testAPI()">Test</button>
           </div>
-          <span class="il">Lấy tại: aistudio.google.com/apikey</span>
+          <div class="irow" style="gap:8px;">
+            <label class="tag"><input type="radio" name="provider" value="openai" checked style="margin-right:6px;">OpenAI</label>
+            <label class="tag"><input type="radio" name="provider" value="google" style="margin-right:6px;">Google Gemini</label>
+          </div>
+          <span class="il">OpenAI key: console.openai.com</span>
+          <span class="il">Google key: console.cloud.google.com/apis/credentials</span>
+          <span class="il">OpenAI dùng <code>sk-...</code> hoặc OAuth <code>ya29...</code>.</span>
+          <span class="il">Google dùng <code>AIza...</code> hoặc OAuth <code>ya29...</code>.</span>
         </div>
       </div>
     </div>
@@ -287,9 +294,16 @@ function copyCaption() {
 }
 
 // AUTH
-function getAuth(key) {
-  if(key.startsWith('AIza')) {
-    return { qp:true, h:{'Content-Type':'application/json'} };
+function getProvider() {
+  var el = document.querySelector('input[name="provider"]:checked');
+  return el ? el.value : 'openai';
+}
+function getAuth(key, provider) {
+  if(provider === 'google') {
+    if(key.startsWith('AIza')) {
+      return { qp:true, h:{'Content-Type':'application/json'} };
+    }
+    return { qp:false, h:{'Content-Type':'application/json','Authorization':'Bearer '+key} };
   }
   return { qp:false, h:{'Content-Type':'application/json','Authorization':'Bearer '+key} };
 }
@@ -300,17 +314,25 @@ function url(base,key,qp) {
 // TEST API
 async function testAPI() {
   var key = document.getElementById('apiKey').value.trim();
+  var provider = getProvider();
   if(!key){ showToast('Nhập API key trước!','error'); return; }
   try {
-    var a = getAuth(key);
-    var r = await fetch(url('https://generativelanguage.googleapis.com/v1beta/models',key,a.qp),{headers:a.h});
+    var a = getAuth(key, provider);
+    var endpoint = provider === 'openai'
+      ? 'https://api.openai.com/v1/models'
+      : 'https://generativelanguage.googleapis.com/v1beta/models';
+    var r = await fetch(url(endpoint,key,a.qp),{headers:a.h});
     if(r.ok){
       document.getElementById('dot').className='dot on';
       document.getElementById('dtext').textContent='Đã kết nối ✓';
       showToast('✅ API key hợp lệ!');
     } else {
       var e = await r.json();
-      throw new Error(e.error&&e.error.message||'Invalid key');
+      var msg = e.error&&e.error.message||'Invalid key';
+      if(r.status===401||r.status===403) {
+        msg = '401/403: Key/token không hợp lệ hoặc chưa bật API cho ' + (provider==='openai' ? 'OpenAI' : 'Google Gemini') + '.';
+      }
+      throw new Error(msg);
     }
   } catch(e) {
     document.getElementById('dot').className='dot';
@@ -319,11 +341,36 @@ async function testAPI() {
   }
 }
 
-// GEMINI TEXT
-async function callGemini(prompt) {
+// AI TEXT
+async function callAI(prompt) {
+  var provider = getProvider();
   var key = document.getElementById('apiKey').value.trim();
   if(!key) throw new Error('Chưa có API key');
-  var a = getAuth(key);
+  if(provider === 'openai') {
+    return callOpenAI(prompt, key);
+  }
+  return callGemini(prompt, key);
+}
+async function callOpenAI(prompt, key) {
+  var a = getAuth(key, 'openai');
+  var r = await fetch('https://api.openai.com/v1/chat/completions', {
+    method:'POST', headers:a.h,
+    body: JSON.stringify({
+      model:'gpt-4.1-mini',
+      messages:[
+        {role:'system',content:'You are Omni StoryFlow AI v7.2 chuyên tạo content TikTok/Facebook viral. Trả về CHỈ JSON hợp lệ, không markdown, không giải thích.'},
+        {role:'user',content:prompt}
+      ],
+      temperature:0.85,
+      max_tokens:1500
+    })
+  });
+  if(!r.ok){ var e=await r.json(); throw new Error(e.error&&e.error.message||'OpenAI error'); }
+  var d = await r.json();
+  return d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content||'';
+}
+async function callGemini(prompt, key) {
+  var a = getAuth(key, 'google');
   var r = await fetch(
     url('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',key,a.qp),
     {
@@ -342,7 +389,11 @@ async function callGemini(prompt) {
 // IMAGEN 3
 async function genImage(prompt, ratio) {
   var key = document.getElementById('apiKey').value.trim();
-  var a = getAuth(key);
+  var provider = getProvider();
+  if(provider === 'openai') {
+    return genOpenAIImage(prompt, ratio, key);
+  }
+  var a = getAuth(key, 'google');
   var r = await fetch(
     url('https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict',key,a.qp),
     {
@@ -357,6 +408,23 @@ async function genImage(prompt, ratio) {
   var d = await r.json();
   var b64 = d.predictions&&d.predictions[0]&&d.predictions[0].bytesBase64Encoded;
   if(!b64) throw new Error('Không có ảnh trả về — có thể Imagen chưa bật cho account này');
+  return 'data:image/png;base64,'+b64;
+}
+async function genOpenAIImage(prompt, ratio, key) {
+  var a = getAuth(key, 'openai');
+  var r = await fetch('https://api.openai.com/v1/images/generations', {
+    method:'POST', headers:a.h,
+    body:JSON.stringify({
+      model:'gpt-image-1',
+      prompt:prompt,
+      n:1,
+      size:'1024x1024'
+    })
+  });
+  if(!r.ok){ var e=await r.json(); throw new Error(e.error&&e.error.message||'OpenAI image error'); }
+  var d = await r.json();
+  var b64 = d.data&&d.data[0]&&d.data[0].b64_json;
+  if(!b64) throw new Error('Không có ảnh trả về — kiểm tra OpenAI Image API');
   return 'data:image/png;base64,'+b64;
 }
 
@@ -425,7 +493,7 @@ async function runStoryFlow() {
 
     var prompt = 'Bạn là Omni StoryFlow AI v7.2 chuyên tạo content TikTok/Facebook viral.\n\nBÀI VIẾT:\n"""\n'+content+'\n"""\n\nCHẾ ĐỘ: '+modeStr+'\nNỀN TẢNG: '+(document.getElementById('platform').value.toUpperCase())+'\n\nTrả về CHỈ JSON hợp lệ, không markdown, không giải thích:\n{\n  "caption": "caption đầy đủ 5 phần: ①Hook ②Open Loop ③Full Value ④CTA ⑤Hashtag (⑥Disclaimer nếu y tế/tài chính)",\n  "recommended_layout": "tiktok4 hoặc tiktok6 hoặc fb1d3v hoặc fb1n3v hoặc fb2v",\n  "affiliate_suggestions": ["sp1","sp2","sp3"],\n  "cells": [\n    {\n      "id": 1,\n      "type": "hook",\n      "role": "Card 1 - Hook",\n      "text_on_image": "tối đa 6 từ",\n      "image_prompt": "Cinematic photo prompt in English. Photorealistic. [scene, lighting, mood, angle, colors]. NO text. NO watermark."\n    }\n  ]\n}\n\nQUY TẮC CELLS:\n- Cell 1: Hook text ≤6 từ. Cinematic dramatic.\n- Cell giữa (story): ZERO info từ bài. Visual metaphor tạo tò mò. text_on_image trống hoặc teaser ≤4 từ.\n- Cell giữa (affiliate): Được text ngắn tên/benefit ≤4 từ. Showcase sản phẩm đẹp.\n- Cell cuối: type="cta". CTA linh hoạt theo chủ đề.\n- Số cells: tự quyết 2-8 dựa trên số ý chính bài.\n- Mỗi cell: góc camera khác nhau.\n- Character consistency nếu có người: cùng giới tính/tuổi/trang phục.';
 
-    var raw = await callGemini(prompt);
+    var raw = await callAI(prompt);
 
     var analysis;
     try {
