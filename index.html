@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StoryFlow AI — Omni v7.2</title>
+  <title>StoryFlow AI — Omni v7.3</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap');
 
@@ -682,7 +682,7 @@
 
   <header>
     <div class="logo">⚡ StoryFlow AI</div>
-    <span class="vbadge">v7.2 Omni</span>
+    <span class="vbadge">v7.3 Omni</span>
     <div class="hright">
       <div class="dot" id="dot"></div>
       <span class="dtext" id="dtext">Chưa kết nối</span>
@@ -708,8 +708,7 @@
             </div>
             <span class="il">OpenAI key: console.openai.com</span>
             <span class="il">Google key: console.cloud.google.com/apis/credentials</span>
-            <span class="il">OpenAI dùng <code>sk-...</code> hoặc OAuth <code>ya29...</code>.</span>
-            <span class="il">Google dùng <code>AIza...</code> hoặc OAuth <code>ya29...</code>.</span>
+            <span class="il" style="color:var(--warning)">Khuyên dùng OpenAI để vẽ CHỮ tiếng Việt chuẩn nhất.</span>
           </div>
         </div>
       </div>
@@ -822,10 +821,9 @@
 
       <div class="dbar" id="dbar" style="display:none">
         <div class="dinfo"><strong id="dlCount">0</strong> ảnh sẵn sàng &nbsp;<span style="font-size:11px">•
-            Canva-ready</span></div>
+            Sẵn sàng tải về</span></div>
         <div class="dacts">
           <button class="btn btn-s" onclick="downloadAll()">⬇️ Tải ZIP</button>
-          <button class="btn btn-g" onclick="copyCanvaGuide()">🎨 Hướng dẫn Canva</button>
         </div>
       </div>
 
@@ -941,13 +939,13 @@
       var r = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST', headers: a.h,
         body: JSON.stringify({
-          model: 'gpt-4.1-mini',
+          model: 'gpt-4o-mini',
           messages: [
-            { role: 'system', content: 'You are Omni StoryFlow AI v7.2 chuyên tạo content TikTok/Facebook viral. Trả về CHỈ JSON hợp lệ, không markdown, không giải thích.' },
+            { role: 'system', content: 'You are Omni StoryFlow AI v7.3 chuyên tạo content TikTok/Facebook viral. Trả về CHỈ JSON hợp lệ, không markdown, không giải thích.' },
             { role: 'user', content: prompt }
           ],
           temperature: 0.85,
-          max_tokens: 1500
+          max_tokens: 2000
         })
       });
       if (!r.ok) { var e = await r.json(); throw new Error(e.error && e.error.message || 'OpenAI error'); }
@@ -971,7 +969,7 @@
       return d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text || '';
     }
 
-    // IMAGEN 3
+    // IMAGEN 3 / DALL-E 3
     async function genImage(prompt, ratio) {
       var key = document.getElementById('apiKey').value.trim();
       var provider = getProvider();
@@ -997,20 +995,25 @@
     }
     async function genOpenAIImage(prompt, ratio, key) {
       var a = getAuth(key, 'openai');
+      // DALL-E 3 supports text generation beautifully. We pass DALL-E 3 explicitly.
       var r = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST', headers: a.h,
         body: JSON.stringify({
-          model: 'gpt-image-1',
+          model: 'dall-e-3',
           prompt: prompt,
           n: 1,
-          size: '1024x1024'
+          size: ratio === '3:4' ? '1024x1792' : '1024x1024',
+          quality: 'standard'
         })
       });
       if (!r.ok) { var e = await r.json(); throw new Error(e.error && e.error.message || 'OpenAI image error'); }
       var d = await r.json();
       var b64 = d.data && d.data[0] && d.data[0].b64_json;
-      if (!b64) throw new Error('Không có ảnh trả về — kiểm tra OpenAI Image API');
-      return 'data:image/png;base64,' + b64;
+      var url = d.data && d.data[0] && d.data[0].url;
+      // DALL-E 3 sometimes only returns URL by default, we fetch and convert to base64 or just use URL
+      if (b64) return 'data:image/png;base64,' + b64;
+      if (url) return url;
+      throw new Error('Không có ảnh trả về — kiểm tra OpenAI Image API');
     }
 
     // LAYOUT
@@ -1037,13 +1040,13 @@
         var bc = { hook: 'bh', story: 'bs', cta: 'bc', affiliate: 'ba' }[c.type] || 'bs';
         var img = S.imgs[c.id];
         var thumb = img
-          ? '<img class="cth" src="' + img + '" />'
+          ? '<img class="cth" src="' + img + '" crossorigin="anonymous"/>'
           : '<div class="cthp"><div class="cnum">' + c.id + '</div><div style="font-size:10px">' + ((c.role || '').substring(0, 20)) + '</div></div>';
         var dl = img ? '<button class="btn btn-ghost" onclick="dlSingle(' + c.id + ')">⬇️</button>' : '';
         return '<div class="cc" id="cc_' + c.id + '">' + thumb
           + '<div id="cov_' + c.id + '"></div>'
           + '<div class="cinfo"><span class="cbadge ' + bc + '">' + c.type + '</span>'
-          + '<div class="cdesc">' + (c.text_on_image || '(visual only)') + '</div></div>'
+          + '<div class="cdesc" style="font-weight:600;color:var(--text)">' + (c.text_on_image || '') + '</div></div>'
           + '<div class="cacts"><button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="regenCell(' + c.id + ')">🔄</button>' + dl + '</div>'
           + '</div>';
       }).join('');
@@ -1076,8 +1079,8 @@
           ? 'AFFILIATE MODE. Sản phẩm: "' + (product || 'phù hợp với bài') + '"'
           : 'STORY MODE (thuần kể chuyện)';
 
-        // ĐÃ THAY THẾ PROMPT "BASE STYLE" VÀO ĐÂY
-        var prompt = `Bạn là Omni StoryFlow AI v7.2 chuyên tạo content TikTok/Facebook viral.
+        // PROMPT MỚI VÀ MẠNH MẼ HƠN ĐỂ CHÈN CHỮ LÊN ẢNH
+        var prompt = `Bạn là Omni StoryFlow AI v7.3 chuyên tạo content TikTok/Facebook viral.
 
 BÀI VIẾT:
 """
@@ -1087,179 +1090,33 @@ ${content}
 CHẾ ĐỘ: ${modeStr}
 NỀN TẢNG: ${document.getElementById('platform').value.toUpperCase()}
 
-Trả về CHỈ JSON hợp lệ, không markdown, không giải thích. 
+TRẢ VỀ CHỈ MỘT CHUỖI JSON HỢP LỆ, KHÔNG MARKDOWN, KHÔNG GIẢI THÍCH.
 
-ĐỂ ĐẢM BẢO TÍNH ĐỒNG NHẤT CHO CÁC ẢNH (Vì mỗi ảnh được tạo bằng một API call độc lập), BẠN PHẢI TẠO MỘT CHUỖI "BASE_STYLE" BAO GỒM: Thể loại ảnh, tone màu, ánh sáng, phong cách, và mô tả ngoại hình nhân vật chi tiết (độ tuổi, giới tính, kiểu tóc, trang phục, dân tộc). 
-Sau đó BẮT BUỘC chèn y nguyên chuỗi "BASE_STYLE" này vào ĐẦU mọi "image_prompt" của tất cả các cell.
+NHIỆM VỤ ĐẶC BIỆT (RENDER TEXT LÊN ẢNH):
+Người dùng yêu cầu ảnh tạo ra phải trông giống NHỮNG TẤM POSTER ĐƯỢC THIẾT KẾ SẴN CÓ CHỮ.
+1. Bạn phải tạo một "base_style_used" mang phong cách Poster nghệ thuật (Ví dụ: Cinematic dark poster style, high contrast, dramatic lighting, moody atmosphere, negative space for typography).
+2. Tạo trường "text_on_image" cực ngắn, xúc tích (2-6 từ) để in lên ảnh.
+3. Trong "image_prompt", BẮT BUỘC YÊU CẦU DALL-E vẽ chữ này lên tranh bằng mẫu câu: 'Bold, highly legible typography overlay reading EXACTLY: "[text_on_image]". Ensure the composition leaves dark negative space to accommodate this text beautifully.'
 
 Cấu trúc JSON:
 {
-  "caption": "caption đầy đủ 5 phần: ①Hook ②Open Loop ③Full Value ④CTA ⑤Hashtag",
+  "caption": "Viết Caption thật dài, sâu sắc, chia paragraph mạch lạc. Gồm: ①Hook ②Open Loop ③Full Value ④CTA ⑤Hashtag",
   "recommended_layout": "tiktok4|tiktok6|fb1d3v|fb1n3v|fb2v",
   "affiliate_suggestions": ["sp1","sp2","sp3"],
-  "base_style_used": "Chuỗi miêu tả phong cách chung (VD: 1990s vintage film photography, cinematic lighting, muted green color grading, main character is a 25yo asian woman with short black hair wearing a white t-shirt)",
+  "base_style_used": "Chuỗi miêu tả phong cách poster có mảng tối để chứa chữ...",
   "cells": [
     {
       "id": 1,
       "type": "hook",
       "role": "Card 1 - Hook",
-      "text_on_image": "tối đa 6 từ",
-      "image_prompt": "[BÊ NGUYÊN CÂU TRONG BASE_STYLE_USED VÀO ĐÂY], [Hành động/Bối cảnh cụ thể của cell này]. Camera angle: [Góc máy cụ thể]. NO text, NO letters, NO words, NO watermark."
+      "text_on_image": "TEXT NGẮN TIẾNG VIỆT ĐỂ IN LÊN ẢNH",
+      "image_prompt": "[BÊ NGUYÊN BASE_STYLE VÀO ĐÂY]. Visual: [Mô tả chi tiết bối cảnh]. Bold, stylized, glowing typography overlay reading EXACTLY: '[BÊ TEXT Ở TRÊN VÀO ĐÂY]'. Make sure the text is large, flawless and centrally aligned in the negative space. Include a small graphic of a yellow arrow pointing left."
     }
   ]
 }
 
 QUY TẮC CELLS:
-- Cell 1: Hook text ≤6 từ. Cinematic dramatic.
-- Cell giữa (story): ZERO info từ bài. Visual metaphor.
-- Cell giữa (affiliate): text ngắn tên/benefit ≤4 từ.
-- Cell cuối: type="cta".
-- Số cells: tự quyết 2-8 dựa trên số ý chính.
-- MỖI CELL: Phải khác nhau về góc camera (close-up, wide shot, over-the-shoulder) NHƯNG nhân vật, màu sắc và ánh sáng phải ĐỒNG NHẤT TUYỆT ĐỐI. KHÔNG BAO GIỜ YÊU CẦU ẢNH CÓ CHỮ, thêm từ khoá "No text" vào cuối mọi image_prompt.`;
-
-        var raw = await callAI(prompt);
-
-        var analysis;
-        try {
-          var m = raw.match(/\{[\s\S]*\}/);
-          if (!m) throw new Error('No JSON');
-          analysis = JSON.parse(m[0]);
-        } catch (e) {
-          throw new Error('AI không trả về JSON hợp lệ. Thử lại.');
-        }
-
-        S.caption = analysis.caption || '';
-        S.cells = analysis.cells || [];
-
-        setProgress(40, 'Đã tạo caption & kế hoạch ' + S.cells.length + ' cell...', '✅');
-
-        // Caption
-        document.getElementById('captionContent').textContent = S.caption;
-        document.getElementById('captionActions').style.display = 'flex';
-
-        // Affiliate
-        var aff = analysis.affiliate_suggestions || [];
-        if (aff.length) {
-          document.getElementById('affiliateBox').style.display = 'block';
-          document.getElementById('achips').innerHTML = aff.map(function (p) {
-            return '<div class="achip" onclick="document.getElementById(\'productName\').value=\'' + p + '\'">' + p + '</div>';
-          }).join('');
-        }
-
-        // Layout
-        var layoutKey = S.layout === 'auto' ? (analysis.recommended_layout || 'tiktok4') : S.layout;
-        var cfg = getLayoutCfg(layoutKey, S.cells.length);
-        document.getElementById('cellCountTag').textContent = S.cells.length + ' cell';
-        document.getElementById('layoutTag').textContent = cfg.label;
-        document.getElementById('cellBox').style.display = 'block';
-        renderCells();
-
-        // Generate images
-        setProgress(60, 'Bắt đầu tạo ảnh...', '🎨');
-        var done = 0;
-        for (var i = 0; i < S.cells.length; i++) {
-          var cell = S.cells[i];
-          setCellLoading(cell.id, true);
-          setProgress(60 + Math.round((done / S.cells.length) * 36), 'Tạo ảnh cell ' + cell.id + '/' + S.cells.length + '...', '🖼');
-          try {
-            S.imgs[cell.id] = await genImage(cell.image_prompt, cfg.ratio);
-          } catch (e2) {
-            S.imgs[cell.id] = null;
-            console.warn('Cell ' + cell.id + ' failed:', e2.message);
-          }
-          setCellLoading(cell.id, false);
-          done++;
-          renderCells();
-        }
-
-        var ok = Object.values(S.imgs).filter(Boolean).length;
-        setProgress(100, 'Hoàn thành! ' + ok + '/' + S.cells.length + ' ảnh.', '✅');
-        if (ok > 0) {
-          document.getElementById('dbar').style.display = 'flex';
-          document.getElementById('dlCount').textContent = ok;
-          showToast('✅ Tạo xong ' + ok + ' ảnh!');
-        } else {
-          showToast('⚠️ Không tạo được ảnh — kiểm tra Imagen API', 'error');
-        }
-
-      } catch (e) {
-        showToast('❌ ' + e.message, 'error');
-        setProgress(0, 'Lỗi: ' + e.message, '❌');
-      } finally {
-        setRunning(false);
-      }
-    }
-
-    async function generateAllImages() {
-      if (!S.cells.length) { showToast('Chạy phân tích trước!', 'error'); return; }
-      var layoutKey = S.layout === 'auto' ? 'tiktok4' : S.layout;
-      var cfg = getLayoutCfg(layoutKey, S.cells.length);
-      S.imgs = {};
-      for (var i = 0; i < S.cells.length; i++) {
-        var c = S.cells[i];
-        setCellLoading(c.id, true);
-        try { S.imgs[c.id] = await genImage(c.image_prompt, cfg.ratio); }
-        catch (e) { S.imgs[c.id] = null; }
-        setCellLoading(c.id, false);
-        renderCells();
-      }
-      var ok = Object.values(S.imgs).filter(Boolean).length;
-      document.getElementById('dlCount').textContent = ok;
-      showToast('✅ Xong ' + ok + ' ảnh!');
-    }
-
-    async function regenCell(id) {
-      var c = S.cells.find(function (x) { return x.id === id; });
-      if (!c) return;
-      var layoutKey = S.layout === 'auto' ? 'tiktok4' : S.layout;
-      var cfg = getLayoutCfg(layoutKey, S.cells.length);
-      setCellLoading(id, true);
-      try {
-        S.imgs[id] = await genImage(c.image_prompt, cfg.ratio);
-        showToast('✅ Đã tạo lại cell ' + id);
-      } catch (e) {
-        showToast('❌ ' + e.message, 'error');
-      }
-      setCellLoading(id, false);
-      renderCells();
-      document.getElementById('dlCount').textContent = Object.values(S.imgs).filter(Boolean).length;
-    }
-
-    function dlSingle(id) {
-      var img = S.imgs[id]; if (!img) return;
-      var a = document.createElement('a');
-      a.href = img; a.download = 'storyflow_cell_' + id + '.png'; a.click();
-      showToast('✅ Đã tải cell ' + id);
-    }
-
-    async function downloadAll() {
-      var entries = Object.entries(S.imgs).filter(function (e) { return e[1]; });
-      if (!entries.length) { showToast('Chưa có ảnh!', 'error'); return; }
-      showToast('⏳ Đang chuẩn bị ZIP...');
-      if (!window.JSZip) {
-        await new Promise(function (res, rej) {
-          var s = document.createElement('script');
-          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-          s.onload = res; s.onerror = rej; document.head.appendChild(s);
-        });
-      }
-      var zip = new JSZip();
-      entries.forEach(function (e) {
-        var data = e[1].replace(/^data:image\/\w+;base64,/, '');
-        zip.file('storyflow_cell_' + e[0] + '.png', data, { base64: true });
-      });
-      var blob = await zip.generateAsync({ type: 'blob' });
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = 'storyflow_cells.zip'; a.click();
-      showToast('✅ Đã tải ' + entries.length + ' ảnh!');
-    }
-
-    function copyCanvaGuide() {
-      var n = Object.values(S.imgs).filter(Boolean).length;
-      var t = 'HƯỚNG DẪN UPLOAD VÀO CANVA:\n1. Tải ' + n + ' ảnh ZIP về máy\n2. Mở Canva → Tạo design mới\n3. Upload từng ảnh → Kéo vào đúng vị trí\n4. Chỉnh text, logo, màu sắc\n5. Xuất PNG/MP4 → Đăng TikTok/Facebook\n\n💡 Tip: Tạo 1 template Canva có sẵn ' + n + ' frame → dùng lại lần sau!';
-      navigator.clipboard.writeText(t).then(function () { showToast('✅ Đã copy hướng dẫn!'); });
-    }
-  </script>
-</body>
-
-</html>
+- Số cells: Tự quyết từ 2 đến 8 cell.
+- Cell 1: Hook text.
+- Cell giữa: Text tóm tắt ý chính của đoạn.
+- Cell cuối:
