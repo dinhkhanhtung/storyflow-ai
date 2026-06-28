@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StoryFlow AI — Omni v7.2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap');
+:root {
+  --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c28;--border:#2a2a3d;
+  --accent:#7c6af7;--accent2:#f76ab4;--accent3:#6af7c8;
+  --text:#e8e8f0;--muted:#6b6b8a;--success:#4ade80;--warning:#fbbf24;--danger:#f87171;
+  --r:16px;--rb:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;}
+header{background:linear-gradient(135deg,#0a0a0f,#1a1030,#0a0a0f);border-bottom:1px solid var(--border);padding:18px 28px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);}
+.logo{font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.vbadge{background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:11px;padding:3px 8px;border-radius:20px;}
+.hright{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--danger);box-shadow:0 0 8px var(--danger);transition:all .3s;}
+.dot.on{background:var(--success);box-shadow:0 0 8px var(--success);}
+.dtext{font-size:12px;color:var(--muted);}
+.wrap{max-width:1380px;margin:0 auto;padding:28px;display:grid;grid-template-columns:400px 1fr;gap:22px;align-items:start;}
+.lp{display:flex;flex-direction:column;gap:14px;position:sticky;top:82px;}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.ph{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;}
+.pb{padding:14px;display:flex;flex-direction:column;gap:10px;}
+.ig{display:flex;flex-direction:column;gap:5px;}
+.il{font-size:11px;color:var(--muted);font-weight:500;}
+.irow{display:flex;gap:7px;}
+input[type=text],input[type=password],textarea,select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rb);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:9px 13px;width:100%;transition:border-color .2s;outline:none;}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+textarea{resize:vertical;min-height:150px;line-height:1.6;}
+select option{background:var(--surface2);}
+.btn{border:none;border-radius:var(--rb);cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;padding:9px 14px;transition:all .2s;display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn-p{background:linear-gradient(135deg,var(--accent),#5a4fd4);color:#fff;width:100%;justify-content:center;padding:12px;font-size:14px;}
+.btn-p:hover{opacity:.9;transform:translateY(-1px);box-shadow:0 4px 18px rgba(124,106,247,.4);}
+.btn-p:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-s{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:7px 11px;}
+.btn-s:hover{border-color:var(--accent);color:var(--accent);}
+.btn-g{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-size:12px;padding:6px 11px;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:5px 9px;}
+.btn-ghost:hover{color:var(--text);border-color:var(--text);}
+.mtabs{display:flex;gap:5px;}
+.mtab{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;}
+.mtab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.lgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.lopt{padding:9px 7px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;font-weight:500;cursor:pointer;text-align:center;transition:all .2s;display:flex;flex-direction:column;gap:3px;align-items:center;}
+.lopt .li{font-size:17px;}
+.lopt.active{border-color:var(--accent2);color:var(--accent2);background:rgba(247,106,180,.08);}
+.lopt:hover{border-color:var(--accent);color:var(--accent);}
+.lopt.auto{grid-column:1/-1;}
+.rp{display:flex;flex-direction:column;gap:18px;}
+.sbar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 15px;display:flex;align-items:center;gap:11px;font-size:12px;color:var(--muted);}
+.pw{flex:1;}
+.pt{background:var(--bg);border-radius:10px;height:6px;overflow:hidden;margin-top:4px;}
+.pf{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s ease;width:0%;}
+.stxt{font-size:12px;color:var(--text);font-weight:500;}
+.cbox{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.chdr{padding:13px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.ctitle{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;display:flex;align-items:center;gap:7px;}
+.ccontent{padding:18px;font-size:14px;line-height:1.8;white-space:pre-wrap;color:var(--text);min-height:100px;}
+.cph{color:var(--muted);font-style:italic;font-size:13px;display:flex;align-items:center;justify-content:center;min-height:90px;}
+.cpgrid{padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:9px;}
+.cc{background:var(--surface2);border:1px solid var(--border);border-radius:9px;overflow:hidden;transition:all .3s;position:relative;}
+.cc:hover{border-color:var(--accent);transform:translateY(-2px);}
+.cth{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:var(--bg);}
+.cthp{width:100%;aspect-ratio:3/4;background:linear-gradient(135deg,var(--surface2),var(--bg));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);}
+.cnum{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--border);}
+.cinfo{padding:7px;}
+.cbadge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px;}
+.bh{background:rgba(124,106,247,.2);color:var(--accent);}
+.bs{background:rgba(106,247,200,.15);color:var(--accent3);}
+.bc{background:rgba(247,106,180,.2);color:var(--accent2);}
+.ba{background:rgba(251,191,36,.2);color:var(--warning);}
+.cdesc{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4;}
+.cacts{display:flex;gap:3px;padding:5px 7px;border-top:1px solid var(--border);}
+.achips{display:flex;flex-wrap:wrap;gap:5px;padding:11px 15px;}
+.achip{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:var(--warning);padding:4px 11px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;}
+.achip:hover{background:rgba(251,191,36,.2);}
+.dbar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;}
+.dinfo{font-size:13px;color:var(--muted);}
+.dinfo strong{color:var(--text);}
+.dacts{display:flex;gap:7px;flex-wrap:wrap;}
+.tag{display:inline-flex;align-items:center;gap:3px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;font-size:11px;color:var(--muted);}
+@keyframes spin{to{transform:rotate(360deg);}}
+.spin{width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.pulse{animation:pulse 1.5s ease infinite;}
+.cov{position:absolute;inset:0;background:rgba(10,10,15,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-size:11px;color:var(--accent);}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 16px;font-size:13px;font-weight:500;z-index:999;transform:translateY(100px);opacity:0;transition:all .3s;display:flex;align-items:center;gap:7px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:var(--success);color:var(--success);}
+.toast.error{border-color:var(--danger);color:var(--danger);}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+@media(max-width:860px){.wrap{grid-template-columns:1fr;padding:14px;}.lp{position:static;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡ StoryFlow AI</div>
+  <span class="vbadge">v7.2 Omni</span>
+  <div class="hright">
+    <div class="dot" id="dot"></div>
+    <span class="dtext" id="dtext">Chưa kết nối</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- LEFT -->
+  <div class="lp">
+
+    <div class="panel">
+      <div class="ph">🔑 Gemini API Key</div>
+      <div class="pb">
+        <div class="ig">
+          <div class="irow">
+            <input type="password" id="apiKey" placeholder="AIzaSy... hoặc AQ.Ab8R..." />
+            <button class="btn btn-s" onclick="testAPI()">Test</button>
+          </div>
+          <span class="il">Lấy tại: aistudio.google.com/apikey</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph">📝 Nội dung đầu vào</div>
+      <div class="pb">
+        <div class="ig">
+          <div class="il">Bài viết / Kịch bản / Ý tưởng</div>
+          <textarea id="inputContent" placeholder="Dán bài viết, kịch bản, hoặc mô tả ý tưởng vào đây...&#10;&#10;AI sẽ tự đếm số cell tối ưu cho bài."></textarea>
+        </div>
+        <div class="ig">
+          <div class="il">Tên sản phẩm Affiliate (tùy chọn)</div>
+          <input type="text" id="productName" placeholder="VD: Trà thảo mộc giảm mỡ gan..." />
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph">🎭 Chế độ & Nền tảng</div>
+      <div class="pb">
+        <div class="mtabs">
+          <div class="mtab active" id="modeStory" onclick="setMode('story')">🎭 Story</div>
+          <div class="mtab" id="modeAffiliate" onclick="setMode('affiliate')">🛒 Bán hàng</div>
+        </div>
+        <div class="ig">
+          <div class="il">Nền tảng</div>
+          <select id="platform">
+            <option value="tiktok">TikTok</option>
+            <option value="facebook">Facebook</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph">📐 Layout ảnh</div>
+      <div class="pb">
+        <div class="lgrid">
+          <div class="lopt auto active" id="layout-auto" onclick="setLayout('auto')">
+            <span class="li">✨</span><span>Auto (AI chọn)</span>
+          </div>
+          <div class="lopt" id="layout-tiktok4" onclick="setLayout('tiktok4')">
+            <span class="li">📱</span><span>TikTok 4 cell</span>
+          </div>
+          <div class="lopt" id="layout-tiktok6" onclick="setLayout('tiktok6')">
+            <span class="li">📱</span><span>TikTok 6 cell</span>
+          </div>
+          <div class="lopt" id="layout-fb1d3v" onclick="setLayout('fb1d3v')">
+            <span class="li">🟦</span><span>FB 1 Dọc 3 Vuông</span>
+          </div>
+          <div class="lopt" id="layout-fb1n3v" onclick="setLayout('fb1n3v')">
+            <span class="li">🟦</span><span>FB 1 Ngang 3 Vuông</span>
+          </div>
+          <div class="lopt" id="layout-fb2v" onclick="setLayout('fb2v')">
+            <span class="li">▪▪</span><span>FB 2 Vuông</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-p" id="runBtn" onclick="runStoryFlow()">
+      <span id="runIcon">⚡</span>
+      <span id="runText">Tạo StoryFlow</span>
+    </button>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="rp">
+
+    <div class="sbar" id="sbar" style="display:none">
+      <div class="pw">
+        <div class="stxt" id="stxt">Đang phân tích...</div>
+        <div class="pt"><div class="pf" id="pf"></div></div>
+      </div>
+      <span id="semoji" class="pulse" style="font-size:19px">🔍</span>
+    </div>
+
+    <div class="cbox">
+      <div class="chdr">
+        <div class="ctitle">📋 Caption</div>
+        <div id="captionActions" style="display:none;gap:6px;display:none">
+          <button class="btn btn-ghost" onclick="copyCaption()">📋 Copy</button>
+        </div>
+      </div>
+      <div class="ccontent" id="captionContent">
+        <div class="cph">Caption sẽ xuất hiện ở đây...</div>
+      </div>
+    </div>
+
+    <div class="panel" id="affiliateBox" style="display:none">
+      <div class="ph">🎁 Gợi ý sản phẩm Affiliate</div>
+      <div class="achips" id="achips"></div>
+    </div>
+
+    <div class="cbox" id="cellBox" style="display:none">
+      <div class="chdr">
+        <div class="ctitle">
+          🎨 Cell ảnh
+          <span class="tag" id="cellCountTag">0 cell</span>
+          <span class="tag" id="layoutTag">—</span>
+        </div>
+        <button class="btn btn-ghost" onclick="generateAllImages()">🖼 Tạo lại tất cả</button>
+      </div>
+      <div class="cpgrid" id="cellGrid"></div>
+    </div>
+
+    <div class="dbar" id="dbar" style="display:none">
+      <div class="dinfo"><strong id="dlCount">0</strong> ảnh sẵn sàng &nbsp;<span style="font-size:11px">• Canva-ready</span></div>
+      <div class="dacts">
+        <button class="btn btn-s" onclick="downloadAll()">⬇️ Tải ZIP</button>
+        <button class="btn btn-g" onclick="copyCanvaGuide()">🎨 Hướng dẫn Canva</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var S = {
+  mode:'story', layout:'auto', platform:'tiktok',
+  caption:'', cells:[], imgs:{}, isRunning:false
+};
+
+function showToast(msg,type) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + (type||'success');
+  setTimeout(function(){ el.className='toast'; }, 2800);
+}
+
+function setProgress(pct,txt,emoji) {
+  document.getElementById('pf').style.width = pct+'%';
+  document.getElementById('stxt').textContent = txt;
+  document.getElementById('semoji').textContent = emoji||'⚡';
+}
+
+function setRunning(v) {
+  S.isRunning = v;
+  var btn = document.getElementById('runBtn');
+  btn.disabled = v;
+  document.getElementById('runIcon').innerHTML = v ? '<div class="spin"></div>' : '⚡';
+  document.getElementById('runText').textContent = v ? 'Đang xử lý...' : 'Tạo StoryFlow';
+}
+
+function setMode(m) {
+  S.mode = m;
+  document.getElementById('modeStory').className = 'mtab' + (m==='story'?' active':'');
+  document.getElementById('modeAffiliate').className = 'mtab' + (m==='affiliate'?' active':'');
+}
+
+function setLayout(l) {
+  S.layout = l;
+  var opts = document.querySelectorAll('.lopt');
+  for(var i=0;i<opts.length;i++) opts[i].classList.remove('active');
+  document.getElementById('layout-'+l).classList.add('active');
+}
+
+function copyCaption() {
+  navigator.clipboard.writeText(S.caption).then(function(){ showToast('✅ Đã copy caption!'); });
+}
+
+// AUTH
+function getAuth(key) {
+  if(key.startsWith('AIza')) {
+    return { qp:true, h:{'Content-Type':'application/json'} };
+  }
+  return { qp:false, h:{'Content-Type':'application/json','Authorization':'Bearer '+key} };
+}
+function url(base,key,qp) {
+  return qp ? base+'?key='+key : base;
+}
+
+// TEST API
+async function testAPI() {
+  var key = document.getElementById('apiKey').value.trim();
+  if(!key){ showToast('Nhập API key trước!','error'); return; }
+  try {
+    var a = getAuth(key);
+    var r = await fetch(url('https://generativelanguage.googleapis.com/v1beta/models',key,a.qp),{headers:a.h});
+    if(r.ok){
+      document.getElementById('dot').className='dot on';
+      document.getElementById('dtext').textContent='Đã kết nối ✓';
+      showToast('✅ API key hợp lệ!');
+    } else {
+      var e = await r.json();
+      throw new Error(e.error&&e.error.message||'Invalid key');
+    }
+  } catch(e) {
+    document.getElementById('dot').className='dot';
+    document.getElementById('dtext').textContent='Lỗi';
+    showToast('❌ '+e.message,'error');
+  }
+}
+
+// GEMINI TEXT
+async function callGemini(prompt) {
+  var key = document.getElementById('apiKey').value.trim();
+  if(!key) throw new Error('Chưa có API key');
+  var a = getAuth(key);
+  var r = await fetch(
+    url('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',key,a.qp),
+    {
+      method:'POST', headers:a.h,
+      body:JSON.stringify({
+        contents:[{parts:[{text:prompt}]}],
+        generationConfig:{temperature:0.85,maxOutputTokens:4096}
+      })
+    }
+  );
+  if(!r.ok){ var e=await r.json(); throw new Error(e.error&&e.error.message||'Gemini error'); }
+  var d = await r.json();
+  return d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&d.candidates[0].content.parts[0].text||'';
+}
+
+// IMAGEN 3
+async function genImage(prompt, ratio) {
+  var key = document.getElementById('apiKey').value.trim();
+  var a = getAuth(key);
+  var r = await fetch(
+    url('https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict',key,a.qp),
+    {
+      method:'POST', headers:a.h,
+      body:JSON.stringify({
+        instances:[{prompt:prompt}],
+        parameters:{sampleCount:1,aspectRatio:ratio||'3:4',safetyFilterLevel:'block_only_high',personGeneration:'allow_adult'}
+      })
+    }
+  );
+  if(!r.ok){ var e=await r.json(); throw new Error(e.error&&e.error.message||'Imagen error'); }
+  var d = await r.json();
+  var b64 = d.predictions&&d.predictions[0]&&d.predictions[0].bytesBase64Encoded;
+  if(!b64) throw new Error('Không có ảnh trả về — có thể Imagen chưa bật cho account này');
+  return 'data:image/png;base64,'+b64;
+}
+
+// LAYOUT
+function getLayoutCfg(l, n) {
+  var map = {
+    tiktok4:{ratio:'3:4',label:'TikTok 4 cell'},
+    tiktok6:{ratio:'1:1',label:'TikTok 6 cell'},
+    fb1d3v:{ratio:'1:1',label:'FB 1 Dọc 3 Vuông'},
+    fb1n3v:{ratio:'1:1',label:'FB 1 Ngang 3 Vuông'},
+    fb2v:{ratio:'1:1',label:'FB 2 Vuông'}
+  };
+  if(l==='auto'){
+    if(n<=2) return {ratio:'1:1',label:'FB 2 Vuông (Auto)'};
+    if(n<=4) return {ratio:'3:4',label:'TikTok 4 cell (Auto)'};
+    return {ratio:'1:1',label:'TikTok 6 cell (Auto)'};
+  }
+  return map[l]||map.tiktok4;
+}
+
+// RENDER CELLS
+function renderCells() {
+  var g = document.getElementById('cellGrid');
+  g.innerHTML = S.cells.map(function(c) {
+    var bc = {hook:'bh',story:'bs',cta:'bc',affiliate:'ba'}[c.type]||'bs';
+    var img = S.imgs[c.id];
+    var thumb = img
+      ? '<img class="cth" src="'+img+'" />'
+      : '<div class="cthp"><div class="cnum">'+c.id+'</div><div style="font-size:10px">'+((c.role||'').substring(0,20))+'</div></div>';
+    var dl = img ? '<button class="btn btn-ghost" onclick="dlSingle('+c.id+')">⬇️</button>' : '';
+    return '<div class="cc" id="cc_'+c.id+'">'+thumb
+      +'<div id="cov_'+c.id+'"></div>'
+      +'<div class="cinfo"><span class="cbadge '+bc+'">'+c.type+'</span>'
+      +'<div class="cdesc">'+(c.text_on_image||'(visual only)')+'</div></div>'
+      +'<div class="cacts"><button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="regenCell('+c.id+')">🔄</button>'+dl+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function setCellLoading(id, on) {
+  var el = document.getElementById('cov_'+id);
+  if(!el) return;
+  el.innerHTML = on ? '<div class="cov"><div class="spin"></div><span>Đang tạo...</span></div>' : '';
+}
+
+// MAIN
+async function runStoryFlow() {
+  var content = document.getElementById('inputContent').value.trim();
+  var product = document.getElementById('productName').value.trim();
+  if(!content){ showToast('Nhập nội dung trước!','error'); return; }
+  if(!document.getElementById('apiKey').value.trim()){ showToast('Nhập API key trước!','error'); return; }
+
+  S.imgs = {};
+  setRunning(true);
+  document.getElementById('sbar').style.display='flex';
+  document.getElementById('affiliateBox').style.display='none';
+  document.getElementById('cellBox').style.display='none';
+  document.getElementById('dbar').style.display='none';
+
+  try {
+    setProgress(10,'Đang phân tích nội dung...','🔍');
+
+    var modeStr = (S.mode==='affiliate'||product)
+      ? 'AFFILIATE MODE. Sản phẩm: "'+( product||'phù hợp với bài')+'"'
+      : 'STORY MODE (thuần kể chuyện)';
+
+    var prompt = 'Bạn là Omni StoryFlow AI v7.2 chuyên tạo content TikTok/Facebook viral.\n\nBÀI VIẾT:\n"""\n'+content+'\n"""\n\nCHẾ ĐỘ: '+modeStr+'\nNỀN TẢNG: '+(document.getElementById('platform').value.toUpperCase())+'\n\nTrả về CHỈ JSON hợp lệ, không markdown, không giải thích:\n{\n  "caption": "caption đầy đủ 5 phần: ①Hook ②Open Loop ③Full Value ④CTA ⑤Hashtag (⑥Disclaimer nếu y tế/tài chính)",\n  "recommended_layout": "tiktok4 hoặc tiktok6 hoặc fb1d3v hoặc fb1n3v hoặc fb2v",\n  "affiliate_suggestions": ["sp1","sp2","sp3"],\n  "cells": [\n    {\n      "id": 1,\n      "type": "hook",\n      "role": "Card 1 - Hook",\n      "text_on_image": "tối đa 6 từ",\n      "image_prompt": "Cinematic photo prompt in English. Photorealistic. [scene, lighting, mood, angle, colors]. NO text. NO watermark."\n    }\n  ]\n}\n\nQUY TẮC CELLS:\n- Cell 1: Hook text ≤6 từ. Cinematic dramatic.\n- Cell giữa (story): ZERO info từ bài. Visual metaphor tạo tò mò. text_on_image trống hoặc teaser ≤4 từ.\n- Cell giữa (affiliate): Được text ngắn tên/benefit ≤4 từ. Showcase sản phẩm đẹp.\n- Cell cuối: type="cta". CTA linh hoạt theo chủ đề.\n- Số cells: tự quyết 2-8 dựa trên số ý chính bài.\n- Mỗi cell: góc camera khác nhau.\n- Character consistency nếu có người: cùng giới tính/tuổi/trang phục.';
+
+    var raw = await callGemini(prompt);
+
+    var analysis;
+    try {
+      var m = raw.match(/\{[\s\S]*\}/);
+      if(!m) throw new Error('No JSON');
+      analysis = JSON.parse(m[0]);
+    } catch(e) {
+      throw new Error('AI không trả về JSON hợp lệ. Thử lại.');
+    }
+
+    S.caption = analysis.caption||'';
+    S.cells = analysis.cells||[];
+
+    setProgress(40,'Đã tạo caption & kế hoạch '+S.cells.length+' cell...','✅');
+
+    // Caption
+    document.getElementById('captionContent').textContent = S.caption;
+    document.getElementById('captionActions').style.display='flex';
+
+    // Affiliate
+    var aff = analysis.affiliate_suggestions||[];
+    if(aff.length) {
+      document.getElementById('affiliateBox').style.display='block';
+      document.getElementById('achips').innerHTML = aff.map(function(p){
+        return '<div class="achip" onclick="document.getElementById(\'productName\').value=\''+p+'\'">'+p+'</div>';
+      }).join('');
+    }
+
+    // Layout
+    var layoutKey = S.layout==='auto' ? (analysis.recommended_layout||'tiktok4') : S.layout;
+    var cfg = getLayoutCfg(layoutKey, S.cells.length);
+    document.getElementById('cellCountTag').textContent = S.cells.length+' cell';
+    document.getElementById('layoutTag').textContent = cfg.label;
+    document.getElementById('cellBox').style.display='block';
+    renderCells();
+
+    // Generate images
+    setProgress(60,'Bắt đầu tạo ảnh...','🎨');
+    var done=0;
+    for(var i=0;i<S.cells.length;i++) {
+      var cell = S.cells[i];
+      setCellLoading(cell.id,true);
+      setProgress(60+Math.round((done/S.cells.length)*36),'Tạo ảnh cell '+cell.id+'/'+S.cells.length+'...','🖼');
+      try {
+        S.imgs[cell.id] = await genImage(cell.image_prompt, cfg.ratio);
+      } catch(e2) {
+        S.imgs[cell.id] = null;
+        console.warn('Cell '+cell.id+' failed:',e2.message);
+      }
+      setCellLoading(cell.id,false);
+      done++;
+      renderCells();
+    }
+
+    var ok = Object.values(S.imgs).filter(Boolean).length;
+    setProgress(100,'Hoàn thành! '+ok+'/'+S.cells.length+' ảnh.','✅');
+    if(ok>0){
+      document.getElementById('dbar').style.display='flex';
+      document.getElementById('dlCount').textContent=ok;
+      showToast('✅ Tạo xong '+ok+' ảnh!');
+    } else {
+      showToast('⚠️ Không tạo được ảnh — kiểm tra Imagen API','error');
+    }
+
+  } catch(e) {
+    showToast('❌ '+e.message,'error');
+    setProgress(0,'Lỗi: '+e.message,'❌');
+  } finally {
+    setRunning(false);
+  }
+}
+
+async function generateAllImages() {
+  if(!S.cells.length){ showToast('Chạy phân tích trước!','error'); return; }
+  var layoutKey = S.layout==='auto'?'tiktok4':S.layout;
+  var cfg = getLayoutCfg(layoutKey, S.cells.length);
+  S.imgs={};
+  for(var i=0;i<S.cells.length;i++){
+    var c=S.cells[i];
+    setCellLoading(c.id,true);
+    try { S.imgs[c.id]=await genImage(c.image_prompt,cfg.ratio); }
+    catch(e){ S.imgs[c.id]=null; }
+    setCellLoading(c.id,false);
+    renderCells();
+  }
+  var ok=Object.values(S.imgs).filter(Boolean).length;
+  document.getElementById('dlCount').textContent=ok;
+  showToast('✅ Xong '+ok+' ảnh!');
+}
+
+async function regenCell(id) {
+  var c=S.cells.find(function(x){return x.id===id;});
+  if(!c) return;
+  var layoutKey=S.layout==='auto'?'tiktok4':S.layout;
+  var cfg=getLayoutCfg(layoutKey,S.cells.length);
+  setCellLoading(id,true);
+  try {
+    S.imgs[id]=await genImage(c.image_prompt,cfg.ratio);
+    showToast('✅ Đã tạo lại cell '+id);
+  } catch(e) {
+    showToast('❌ '+e.message,'error');
+  }
+  setCellLoading(id,false);
+  renderCells();
+  document.getElementById('dlCount').textContent=Object.values(S.imgs).filter(Boolean).length;
+}
+
+function dlSingle(id) {
+  var img=S.imgs[id]; if(!img) return;
+  var a=document.createElement('a');
+  a.href=img; a.download='storyflow_cell_'+id+'.png'; a.click();
+  showToast('✅ Đã tải cell '+id);
+}
+
+async function downloadAll() {
+  var entries=Object.entries(S.imgs).filter(function(e){return e[1];});
+  if(!entries.length){showToast('Chưa có ảnh!','error');return;}
+  showToast('⏳ Đang chuẩn bị ZIP...');
+  if(!window.JSZip){
+    await new Promise(function(res,rej){
+      var s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload=res;s.onerror=rej;document.head.appendChild(s);
+    });
+  }
+  var zip=new JSZip();
+  entries.forEach(function(e){
+    var data=e[1].replace(/^data:image\/\w+;base64,/,'');
+    zip.file('storyflow_cell_'+e[0]+'.png',data,{base64:true});
+  });
+  var blob=await zip.generateAsync({type:'blob'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='storyflow_cells.zip';a.click();
+  showToast('✅ Đã tải '+entries.length+' ảnh!');
+}
+
+function copyCanvaGuide() {
+  var n=Object.values(S.imgs).filter(Boolean).length;
+  var t='HƯỚNG DẪN UPLOAD VÀO CANVA:\n1. Tải '+n+' ảnh ZIP về máy\n2. Mở Canva → Tạo design mới\n3. Upload từng ảnh → Kéo vào đúng vị trí\n4. Chỉnh text, logo, màu sắc\n5. Xuất PNG/MP4 → Đăng TikTok/Facebook\n\n💡 Tip: Tạo 1 template Canva có sẵn '+n+' frame → dùng lại lần sau!';
+  navigator.clipboard.writeText(t).then(function(){showToast('✅ Đã copy hướng dẫn!');});
+}
+</script>
+</body>
+</html>
