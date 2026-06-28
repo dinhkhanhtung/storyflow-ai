@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 
 <head>
@@ -690,7 +690,6 @@
   </header>
 
   <div class="wrap">
-    <!-- LEFT -->
     <div class="lp">
 
       <div class="panel">
@@ -780,7 +779,6 @@
 
     </div>
 
-    <!-- RIGHT -->
     <div class="rp">
 
       <div class="sbar" id="sbar" style="display:none">
@@ -1078,7 +1076,46 @@
           ? 'AFFILIATE MODE. Sản phẩm: "' + (product || 'phù hợp với bài') + '"'
           : 'STORY MODE (thuần kể chuyện)';
 
-        var prompt = 'Bạn là Omni StoryFlow AI v7.2 chuyên tạo content TikTok/Facebook viral.\n\nBÀI VIẾT:\n"""\n' + content + '\n"""\n\nCHẾ ĐỘ: ' + modeStr + '\nNỀN TẢNG: ' + (document.getElementById('platform').value.toUpperCase()) + '\n\nTrả về CHỈ JSON hợp lệ, không markdown, không giải thích:\n{\n  "caption": "caption đầy đủ 5 phần: ①Hook ②Open Loop ③Full Value ④CTA ⑤Hashtag (⑥Disclaimer nếu y tế/tài chính)",\n  "recommended_layout": "tiktok4 hoặc tiktok6 hoặc fb1d3v hoặc fb1n3v hoặc fb2v",\n  "affiliate_suggestions": ["sp1","sp2","sp3"],\n  "cells": [\n    {\n      "id": 1,\n      "type": "hook",\n      "role": "Card 1 - Hook",\n      "text_on_image": "tối đa 6 từ",\n      "image_prompt": "Cinematic photo prompt in English. Photorealistic. [scene, lighting, mood, angle, colors]. NO text. NO watermark. Each cell must be generated as a separate individual image, not a combined collage or panel. Use a consistent visual theme, lighting, and color palette across all cells.""\n    }\n  ]\n}\n\nQUY TẮC CELLS:\n- Cell 1: Hook text ≤6 từ. Cinematic dramatic.\n- Cell giữa (story): ZERO info từ bài. Visual metaphor tạo tò mò. text_on_image trống hoặc teaser ≤4 từ.\n- Cell giữa (affiliate): Được text ngắn tên/benefit ≤4 từ. Showcase sản phẩm đẹp.\n- Cell cuối: type="cta". CTA linh hoạt theo chủ đề.\n- Số cells: tự quyết 2-8 dựa trên số ý chính bài.\n- Mỗi cell: góc camera khác nhau.\n- Character consistency nếu có người: cùng giới tính/tuổi/trang phục.';
+        // ĐÃ THAY THẾ PROMPT "BASE STYLE" VÀO ĐÂY
+        var prompt = `Bạn là Omni StoryFlow AI v7.2 chuyên tạo content TikTok/Facebook viral.
+
+BÀI VIẾT:
+"""
+${content}
+"""
+
+CHẾ ĐỘ: ${modeStr}
+NỀN TẢNG: ${document.getElementById('platform').value.toUpperCase()}
+
+Trả về CHỈ JSON hợp lệ, không markdown, không giải thích. 
+
+ĐỂ ĐẢM BẢO TÍNH ĐỒNG NHẤT CHO CÁC ẢNH (Vì mỗi ảnh được tạo bằng một API call độc lập), BẠN PHẢI TẠO MỘT CHUỖI "BASE_STYLE" BAO GỒM: Thể loại ảnh, tone màu, ánh sáng, phong cách, và mô tả ngoại hình nhân vật chi tiết (độ tuổi, giới tính, kiểu tóc, trang phục, dân tộc). 
+Sau đó BẮT BUỘC chèn y nguyên chuỗi "BASE_STYLE" này vào ĐẦU mọi "image_prompt" của tất cả các cell.
+
+Cấu trúc JSON:
+{
+  "caption": "caption đầy đủ 5 phần: ①Hook ②Open Loop ③Full Value ④CTA ⑤Hashtag",
+  "recommended_layout": "tiktok4|tiktok6|fb1d3v|fb1n3v|fb2v",
+  "affiliate_suggestions": ["sp1","sp2","sp3"],
+  "base_style_used": "Chuỗi miêu tả phong cách chung (VD: 1990s vintage film photography, cinematic lighting, muted green color grading, main character is a 25yo asian woman with short black hair wearing a white t-shirt)",
+  "cells": [
+    {
+      "id": 1,
+      "type": "hook",
+      "role": "Card 1 - Hook",
+      "text_on_image": "tối đa 6 từ",
+      "image_prompt": "[BÊ NGUYÊN CÂU TRONG BASE_STYLE_USED VÀO ĐÂY], [Hành động/Bối cảnh cụ thể của cell này]. Camera angle: [Góc máy cụ thể]. NO text, NO letters, NO words, NO watermark."
+    }
+  ]
+}
+
+QUY TẮC CELLS:
+- Cell 1: Hook text ≤6 từ. Cinematic dramatic.
+- Cell giữa (story): ZERO info từ bài. Visual metaphor.
+- Cell giữa (affiliate): text ngắn tên/benefit ≤4 từ.
+- Cell cuối: type="cta".
+- Số cells: tự quyết 2-8 dựa trên số ý chính.
+- MỖI CELL: Phải khác nhau về góc camera (close-up, wide shot, over-the-shoulder) NHƯNG nhân vật, màu sắc và ánh sáng phải ĐỒNG NHẤT TUYỆT ĐỐI. KHÔNG BAO GIỜ YÊU CẦU ẢNH CÓ CHỮ, thêm từ khoá "No text" vào cuối mọi image_prompt.`;
 
         var raw = await callAI(prompt);
 
@@ -1226,4 +1263,3 @@
 </body>
 
 </html>
-
