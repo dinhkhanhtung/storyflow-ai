@@ -881,6 +881,7 @@
       var el = document.querySelector('input[name="provider"]:checked');
       return el ? el.value : 'openai';
     }
+
     function getAuth(key, provider) {
       if (provider === 'google') {
         if (key.startsWith('AIza')) {
@@ -890,6 +891,7 @@
       }
       return { qp: false, h: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key } };
     }
+
     function url(base, key, qp) {
       return qp ? base + '?key=' + key : base;
     }
@@ -934,6 +936,7 @@
       }
       return callGemini(prompt, key);
     }
+
     async function callOpenAI(prompt, key) {
       var a = getAuth(key, 'openai');
       var r = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -952,6 +955,7 @@
       var d = await r.json();
       return d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content || '';
     }
+
     async function callGemini(prompt, key) {
       var a = getAuth(key, 'google');
       var r = await fetch(
@@ -993,9 +997,10 @@
       if (!b64) throw new Error('Không có ảnh trả về — có thể Imagen chưa bật cho account này');
       return 'data:image/png;base64,' + b64;
     }
+
     async function genOpenAIImage(prompt, ratio, key) {
       var a = getAuth(key, 'openai');
-      // DALL-E 3 supports text generation beautifully. We pass DALL-E 3 explicitly.
+      // Ép API trả về b64_json để tránh lỗi CORS khi tải ảnh về máy
       var r = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST', headers: a.h,
         body: JSON.stringify({
@@ -1003,17 +1008,15 @@
           prompt: prompt,
           n: 1,
           size: ratio === '3:4' ? '1024x1792' : '1024x1024',
+          response_format: 'b64_json',
           quality: 'standard'
         })
       });
       if (!r.ok) { var e = await r.json(); throw new Error(e.error && e.error.message || 'OpenAI image error'); }
       var d = await r.json();
       var b64 = d.data && d.data[0] && d.data[0].b64_json;
-      var url = d.data && d.data[0] && d.data[0].url;
-      // DALL-E 3 sometimes only returns URL by default, we fetch and convert to base64 or just use URL
-      if (b64) return 'data:image/png;base64,' + b64;
-      if (url) return url;
-      throw new Error('Không có ảnh trả về — kiểm tra OpenAI Image API');
+      if (!b64) throw new Error('Không có ảnh trả về — kiểm tra OpenAI Image API');
+      return 'data:image/png;base64,' + b64;
     }
 
     // LAYOUT
@@ -1040,7 +1043,7 @@
         var bc = { hook: 'bh', story: 'bs', cta: 'bc', affiliate: 'ba' }[c.type] || 'bs';
         var img = S.imgs[c.id];
         var thumb = img
-          ? '<img class="cth" src="' + img + '" crossorigin="anonymous"/>'
+          ? '<img class="cth" src="' + img + '" />'
           : '<div class="cthp"><div class="cnum">' + c.id + '</div><div style="font-size:10px">' + ((c.role || '').substring(0, 20)) + '</div></div>';
         var dl = img ? '<button class="btn btn-ghost" onclick="dlSingle(' + c.id + ')">⬇️</button>' : '';
         return '<div class="cc" id="cc_' + c.id + '">' + thumb
@@ -1079,7 +1082,6 @@
           ? 'AFFILIATE MODE. Sản phẩm: "' + (product || 'phù hợp với bài') + '"'
           : 'STORY MODE (thuần kể chuyện)';
 
-        // PROMPT MỚI VÀ MẠNH MẼ HƠN ĐỂ CHÈN CHỮ LÊN ẢNH
         var prompt = `Bạn là Omni StoryFlow AI v7.3 chuyên tạo content TikTok/Facebook viral.
 
 BÀI VIẾT:
@@ -1119,4 +1121,147 @@ QUY TẮC CELLS:
 - Số cells: Tự quyết từ 2 đến 8 cell.
 - Cell 1: Hook text.
 - Cell giữa: Text tóm tắt ý chính của đoạn.
-- Cell cuối:
+- Cell cuối: Call to Action (VD: LƯU LẠI NGAY).
+- Yêu cầu AI vẽ chữ bằng mọi giá vào trong image_prompt.`;
+
+        var raw = await callAI(prompt);
+
+        var analysis;
+        try {
+          var m = raw.match(/\{[\s\S]*\}/);
+          if (!m) throw new Error('No JSON');
+          analysis = JSON.parse(m[0]);
+        } catch (e) {
+          throw new Error('AI không trả về JSON hợp lệ. Thử lại.');
+        }
+
+        S.caption = analysis.caption || '';
+        S.cells = analysis.cells || [];
+
+        setProgress(40, 'Đã tạo caption chi tiết & ' + S.cells.length + ' cell poster...', '✅');
+
+        // Caption
+        document.getElementById('captionContent').textContent = S.caption;
+        document.getElementById('captionActions').style.display = 'flex';
+
+        // Affiliate
+        var aff = analysis.affiliate_suggestions || [];
+        if (aff.length) {
+          document.getElementById('affiliateBox').style.display = 'block';
+          document.getElementById('achips').innerHTML = aff.map(function (p) {
+            return '<div class="achip" onclick="document.getElementById(\'productName\').value=\'' + p + '\'">' + p + '</div>';
+          }).join('');
+        }
+
+        // Layout
+        var layoutKey = S.layout === 'auto' ? (analysis.recommended_layout || 'tiktok4') : S.layout;
+        var cfg = getLayoutCfg(layoutKey, S.cells.length);
+        document.getElementById('cellCountTag').textContent = S.cells.length + ' cell';
+        document.getElementById('layoutTag').textContent = cfg.label;
+        document.getElementById('cellBox').style.display = 'block';
+        renderCells();
+
+        // Generate images
+        setProgress(60, 'Bắt đầu tạo poster có chữ...', '🎨');
+        var done = 0;
+        for (var i = 0; i < S.cells.length; i++) {
+          var cell = S.cells[i];
+          setCellLoading(cell.id, true);
+          setProgress(60 + Math.round((done / S.cells.length) * 36), 'Tạo poster ' + cell.id + '/' + S.cells.length + '...', '🖼');
+          try {
+            S.imgs[cell.id] = await genImage(cell.image_prompt, cfg.ratio);
+          } catch (e2) {
+            S.imgs[cell.id] = null;
+            console.warn('Cell ' + cell.id + ' failed:', e2.message);
+          }
+          setCellLoading(cell.id, false);
+          done++;
+          renderCells();
+        }
+
+        var ok = Object.values(S.imgs).filter(Boolean).length;
+        setProgress(100, 'Hoàn thành! ' + ok + '/' + S.cells.length + ' poster.', '✅');
+        if (ok > 0) {
+          document.getElementById('dbar').style.display = 'flex';
+          document.getElementById('dlCount').textContent = ok;
+          showToast('✅ Đã render xong ' + ok + ' poster có chữ!');
+        } else {
+          showToast('⚠️ Lỗi sinh ảnh — vui lòng thử lại', 'error');
+        }
+
+      } catch (e) {
+        showToast('❌ ' + e.message, 'error');
+        setProgress(0, 'Lỗi: ' + e.message, '❌');
+      } finally {
+        setRunning(false);
+      }
+    }
+
+    async function generateAllImages() {
+      if (!S.cells.length) { showToast('Chạy phân tích trước!', 'error'); return; }
+      var layoutKey = S.layout === 'auto' ? 'tiktok4' : S.layout;
+      var cfg = getLayoutCfg(layoutKey, S.cells.length);
+      S.imgs = {};
+      for (var i = 0; i < S.cells.length; i++) {
+        var c = S.cells[i];
+        setCellLoading(c.id, true);
+        try { S.imgs[c.id] = await genImage(c.image_prompt, cfg.ratio); }
+        catch (e) { S.imgs[c.id] = null; }
+        setCellLoading(c.id, false);
+        renderCells();
+      }
+      var ok = Object.values(S.imgs).filter(Boolean).length;
+      document.getElementById('dlCount').textContent = ok;
+      showToast('✅ Xong ' + ok + ' ảnh!');
+    }
+
+    async function regenCell(id) {
+      var c = S.cells.find(function (x) { return x.id === id; });
+      if (!c) return;
+      var layoutKey = S.layout === 'auto' ? 'tiktok4' : S.layout;
+      var cfg = getLayoutCfg(layoutKey, S.cells.length);
+      setCellLoading(id, true);
+      try {
+        S.imgs[id] = await genImage(c.image_prompt, cfg.ratio);
+        showToast('✅ Đã tạo lại poster ' + id);
+      } catch (e) {
+        showToast('❌ ' + e.message, 'error');
+      }
+      setCellLoading(id, false);
+      renderCells();
+      document.getElementById('dlCount').textContent = Object.values(S.imgs).filter(Boolean).length;
+    }
+
+    function dlSingle(id) {
+      var img = S.imgs[id]; if (!img) return;
+      var a = document.createElement('a');
+      a.href = img; a.download = 'storyflow_poster_' + id + '.png'; a.click();
+      showToast('✅ Đã tải poster ' + id);
+    }
+
+    async function downloadAll() {
+      var entries = Object.entries(S.imgs).filter(function (e) { return e[1]; });
+      if (!entries.length) { showToast('Chưa có ảnh!', 'error'); return; }
+      showToast('⏳ Đang chuẩn bị ZIP...');
+      if (!window.JSZip) {
+        await new Promise(function (res, rej) {
+          var s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+          s.onload = res; s.onerror = rej; document.head.appendChild(s);
+        });
+      }
+      var zip = new JSZip();
+      for (var i = 0; i < entries.length; i++) {
+        var e = entries[i];
+        var data = e[1].replace(/^data:image\/\w+;base64,/, '');
+        zip.file('storyflow_poster_' + e[0] + '.png', data, { base64: true });
+      }
+      var blob = await zip.generateAsync({ type: 'blob' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'storyflow_posters.zip'; a.click();
+      showToast('✅ Đã tải ' + entries.length + ' poster!');
+    }
+  </script>
+</body>
+
+</html>
